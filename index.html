@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тэгш өнцөгт координатын хавтгай</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;700;800&display=swap">
+<style>
+:root{
+  --deep:#0a1f3c; --sea:#123a6b; --sea2:#1b4f8f; --wave:#2b6cb0; --foam:#e8f3ff;
+  --sail:#fffdf7; --ink:#0d2340; --muted:#4d6585; --chart:#eaf4fb; --cline:#9cc3e6;
+  --coral:#ff6f61; --coral-d:#d94c3f; --coral-soft:#ffe3df;
+  --sand:#f6d58e; --sand-d:#d9b25a; --sand-soft:#fff4d9;
+  --teal:#1fae9f; --teal-d:#138074; --teal-soft:#d9f5f1;
+  --red:#e5484d;
+  --shadow:0 12px 28px rgba(3,14,32,.35);
+  --hfont:"Russo One","Rubik",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{color:var(--ink);font-family:"Rubik","Segoe UI",system-ui,sans-serif;font-size:20px;line-height:1.4;overflow:hidden;
+  background-color:var(--deep);
+  background-image:
+    linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px),
+    radial-gradient(ellipse at 50% -10%,#1f5ea6 0%,#123a6b 45%,#0a1f3c 85%);
+  background-size:48px 48px,48px 48px,100% 100%}
+button{font:inherit;cursor:pointer}
+.waves{position:fixed;left:0;right:0;bottom:66px;height:90px;z-index:0;pointer-events:none;opacity:.35}
+
+/* ===== Header ===== */
+.top{position:fixed;inset:0 0 auto 0;height:64px;display:grid;grid-template-columns:auto 1fr auto;align-items:stretch;z-index:20;background:#071629;color:#fff;
+  border-bottom:5px solid transparent;border-image:repeating-linear-gradient(90deg,var(--sand) 0 10px,var(--sand-d) 10px 20px) 5}
+.tb{display:flex;align-items:center;gap:10px;padding:0 16px}
+.tb .lbl{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#8fb3de;display:block}
+.tb .val{font-family:var(--hfont);font-size:19px;letter-spacing:.3px;white-space:nowrap}
+.tb.mid{min-width:0;overflow:hidden;border-left:1px solid rgba(255,255,255,.18)}
+.tb.mid .val{overflow:hidden;text-overflow:ellipsis;color:var(--sand)}
+.ranks{display:flex;gap:5px}
+.ranks span{font-size:13px;font-weight:700;padding:3px 8px;border:1.5px solid rgba(255,255,255,.3);border-radius:20px;color:#9fbde0;white-space:nowrap}
+.ranks span.on{background:var(--coral);color:#fff;border-color:var(--coral)}
+.timer{font-family:var(--hfont);font-size:23px;font-variant-numeric:tabular-nums;color:var(--sand)}
+.timer.warn{color:#ffb44c}.timer.over{color:#ff8a80}
+.tbtn{border:1.5px solid rgba(255,255,255,.35);background:transparent;border-radius:8px;padding:4px 10px;font-weight:700;font-size:15px;color:#fff}
+.tbtn:hover{border-color:var(--sand);color:var(--sand)}
+
+/* ===== Slides ===== */
+.deck{position:absolute;inset:76px 0 72px 0;z-index:1}
+.slide{position:absolute;inset:0;overflow:hidden;padding:10px clamp(16px,3.5vw,48px) 14px;opacity:0;visibility:hidden;transform:translateX(30px);transition:opacity .4s,transform .4s,visibility .4s}
+.slide.active{opacity:1;visibility:visible;transform:none}
+.inner{max-width:1280px;margin:0 auto}
+h2{font-family:var(--hfont);font-weight:400;font-size:clamp(26px,2.8vw,38px);margin:0 0 8px;color:#fff;display:flex;align-items:center;gap:12px;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+h3{font-size:21px;margin:0 0 8px;font-weight:800;color:var(--sea)}
+.tag{display:inline-block;font-family:var(--hfont);letter-spacing:1px;font-size:14px;color:var(--deep);background:var(--sand);padding:2px 14px;border-radius:20px;margin-bottom:4px}
+.card{background:var(--sail);border-radius:14px;box-shadow:var(--shadow);padding:14px 18px;position:relative;border-top:6px solid var(--coral)}
+.card.teal{border-top-color:var(--teal)}.card.sand{border-top-color:var(--sand-d)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:10px;padding:9px 16px;font-weight:700;background:var(--sea2);color:#fff;box-shadow:0 4px 0 var(--deep);transition:transform .1s,filter .15s}
+.btn:hover{filter:brightness(1.12)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--deep)}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid #cfdcec;box-shadow:none}
+.btn.ghost.on{background:var(--foam);border-color:var(--sea2);color:var(--sea)}
+.btn.coral{background:var(--coral);box-shadow:0 4px 0 var(--coral-d)}
+.btn.sand{background:var(--sand);color:var(--deep);box-shadow:0 4px 0 var(--sand-d)}
+.btn.teal{background:var(--teal);box-shadow:0 4px 0 var(--teal-d)}
+.btn.sm{padding:6px 12px;font-size:16px}
+.muted{color:var(--muted)}
+.def{padding:8px 12px;margin:6px 0;background:var(--foam);border-left:5px solid var(--sea2);border-radius:0 8px 8px 0}
+.def.c{background:var(--coral-soft);border-color:var(--coral)}.def.s{background:var(--sand-soft);border-color:var(--sand-d)}.def.t{background:var(--teal-soft);border-color:var(--teal)}
+.big{font-family:var(--hfont);font-size:30px;color:var(--sea);text-align:center;margin:4px 0}
+.feedback{font-size:19px;font-weight:700;min-height:28px;margin-top:6px}
+.feedback.ok{color:var(--teal-d)}.feedback.no{color:var(--coral-d)}
+.ans{display:none}.ans.show{display:block}
+.inp{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;font-family:var(--hfont);font-size:24px}
+.inp input{width:74px;font:inherit;font-size:24px;text-align:center;border:2px solid #cfdcec;border-radius:8px;padding:2px 4px;color:var(--ink)}
+.inp input.ok{border-color:var(--teal);background:var(--teal-soft)}.inp input.no{border-color:var(--coral);background:var(--coral-soft)}
+.chartbox{background:var(--sail);border-radius:14px;box-shadow:var(--shadow);padding:8px;border:3px solid var(--sand)}
+.chartbox svg,.chartbox canvas{display:block;width:100%;height:auto;margin:0 auto}
+.gsvg{max-height:calc(100vh - 280px)}
+.score{font-family:var(--hfont);font-size:22px;color:var(--sea)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.chips span{font-family:var(--hfont);font-size:16px;padding:2px 8px;border-radius:8px;background:#eef2f7;color:var(--muted);border:2px solid transparent}
+.chips span.done{background:var(--teal-soft);color:var(--teal-d)}
+.chips span.cur{border-color:var(--coral);background:#fff;color:var(--coral-d)}
+.svgtext{font-family:"Rubik",sans-serif}
+
+/* ===== Nav ===== */
+.nav{position:fixed;inset:auto 0 0 0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:20;gap:10px;background:#071629;
+  border-top:5px solid transparent;border-image:repeating-linear-gradient(90deg,var(--sand) 0 10px,var(--sand-d) 10px 20px) 5}
+.nav .btn{background:var(--sail);color:var(--sea);box-shadow:0 4px 0 rgba(0,0,0,.4)}
+.dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.dot{min-width:40px;height:32px;border:1.5px solid rgba(255,255,255,.35);border-radius:16px;background:transparent;color:#a9c4ea;font-family:var(--hfont);font-size:14px;transition:.2s}
+.dot.on{background:var(--coral);color:#fff;border-color:var(--coral)}
+.dot.done{background:rgba(255,255,255,.14);color:#fff}
+.tnotes{position:fixed;right:18px;bottom:78px;width:min(440px,calc(100vw - 36px));max-height:calc(100vh - 170px);overflow:auto;background:var(--sand-soft);border:2px solid var(--sand-d);border-radius:12px;padding:14px 18px;font-size:16px;box-shadow:var(--shadow);z-index:25;display:none}
+.tnotes.show{display:block}
+.tnotes h4{margin:0 0 6px;font-size:17px}
+.tnotes ul{margin:0;padding-left:20px}
+
+/* ===== Intro ===== */
+.intro{height:calc(100vh - 175px);display:flex;align-items:center;justify-content:center}
+.flag{max-width:1000px;width:100%;display:grid;grid-template-columns:260px 1fr;gap:30px;align-items:center;background:rgba(7,22,41,.6);border:3px solid var(--sand);border-radius:22px;padding:28px 36px;box-shadow:var(--shadow);color:#fff}
+.flag .rose{width:100%;height:auto;animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.flag .school{font-size:24px;color:var(--sand);font-weight:700}
+.flag .subject{font-family:var(--hfont);font-size:clamp(50px,6.5vw,84px);line-height:1.05;letter-spacing:2px}
+.flag .topic{font-family:var(--hfont);font-size:clamp(26px,3vw,40px);color:var(--coral);margin:6px 0 12px;line-height:1.15}
+.flag .teacher{display:inline-block;font-size:22px;font-weight:700;background:var(--sail);color:var(--ink);padding:6px 18px;border-radius:30px}
+.flag .acad{font-size:17px;color:#9fbde0;margin-top:10px}
+
+/* TPS */
+.tps{display:flex;gap:6px;margin:4px 0 8px}
+.tps button{flex:1;border:2px solid #cfdcec;background:#fff;border-radius:10px;padding:6px;font-weight:700;font-size:16px}
+.tps button.on{background:var(--sea2);border-color:var(--sea2);color:#fff}
+.qcard{background:#f4f8fc;border-radius:10px;padding:7px 12px;margin:6px 0;font-size:18px}
+.qcard .ans{color:var(--teal-d);font-weight:700;margin-top:4px}
+
+/* Battle */
+.bt{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bt .card{padding:8px 12px;transition:box-shadow .2s,transform .2s}
+.bt .card.target{box-shadow:0 0 0 5px var(--sand),var(--shadow)}
+.bt .card h3{margin:0 0 4px;display:flex;justify-content:space-between;align-items:center}
+.bt svg{display:block;width:100%;height:auto;max-height:calc(100vh - 390px)}
+.blog{font-size:15px;color:var(--muted);min-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bctrl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--sail);border-radius:14px;padding:8px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.bmsg{flex:1;min-width:260px;font-weight:700;font-size:19px}
+.cover{fill:rgba(10,31,60,.85)}
+
+/* Exit */
+.exit{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.exit .card{padding:10px 14px}
+.exit .q{font-weight:700;font-size:18px;margin-bottom:6px}
+.exit svg{display:block;width:100%;max-height:150px}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opts button{border:2px solid #cfdcec;background:#fff;border-radius:8px;padding:4px 12px;font-family:var(--hfont);font-size:18px}
+.opts button.ok{background:var(--teal-soft);border-color:var(--teal)}.opts button.no{background:var(--coral-soft);border-color:var(--coral)}
+
+/* Reflection */
+.frames .fr{display:flex;align-items:baseline;gap:8px;margin:8px 0;font-weight:700;font-size:19px;flex-wrap:wrap}
+.frames .fr div[contenteditable]{flex:1;min-width:220px;border-bottom:2px dashed var(--sea2);outline:none;padding:2px 6px;font-weight:500;color:var(--sea)}
+.frames .fr div[contenteditable]:empty::before{content:attr(data-ph);color:#a9b8cf}
+.stars3{display:flex;gap:10px}
+.stars3 button{font-size:40px;border:none;background:none;filter:grayscale(1);opacity:.4;transition:.2s}
+.stars3 button.on{filter:none;opacity:1;transform:scale(1.1)}
+.hw{list-style:none;padding:0;margin:6px 0 0}
+.hw li{padding:5px 8px;margin:4px 0;background:#f4f8fc;border-left:4px solid var(--sea2);border-radius:0 8px 8px 0;font-size:17px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+@media (max-height:900px){
+  body{font-size:18px}
+  h2{font-size:28px;margin-bottom:6px}
+  .card{padding:10px 14px}
+  .def{padding:6px 10px;margin:5px 0;font-size:17px}
+  .qcard{font-size:17px;padding:5px 10px;margin:4px 0}
+  .feedback{font-size:18px}
+  .big{font-size:24px}
+  .inp,.inp input{font-size:20px}
+  .flag{padding:20px 28px}
+  .exit .q{font-size:17px}
+  .exit svg{max-height:120px}
+  .hw li{font-size:16px;padding:4px 8px}
+}
+@media (max-width:1000px){
+  .ranks{display:none}
+  .grid2,.bt,.exit{grid-template-columns:1fr !important}
+  .flag{grid-template-columns:1fr}
+  .flag .rose{max-width:140px;margin:0 auto}
+  .dots{display:none}
+  .slide{overflow:auto}
+}
+</style>
+</head>
+<body>
+
+<svg class="waves" viewBox="0 0 1200 90" preserveAspectRatio="none"><path d="M0 40 Q75 10 150 40 T300 40 T450 40 T600 40 T750 40 T900 40 T1050 40 T1200 40 V90 H0Z" fill="#2b6cb0"/><path d="M0 60 Q75 35 150 60 T300 60 T450 60 T600 60 T750 60 T900 60 T1050 60 T1200 60 V90 H0Z" fill="#1b4f8f"/></svg>
+
+<header class="top">
+  <div class="tb"><span><span class="lbl">Хичээл</span><span class="val">⚓ Математик · 5-р анги</span></span></div>
+  <div class="tb mid"><span style="min-width:0"><span class="lbl">Тэнгисийн академи · <span id="sheetNo">Хуудас 1/10</span></span><span class="val" id="stageName"></span></span></div>
+  <div class="tb">
+    <div class="ranks" title="Олсон цол"><span id="rk1">⚓ Курсант</span><span id="rk2">🧭 Жолооч</span><span id="rk3">🎯 Буудагч</span><span id="rk4">🗺️ Зураглаач</span></div>
+    <div class="timer" id="timer" title="Хичээлийн үлдсэн хугацаа (2 удаа дарвал 40:00 болно)">⏱ <span id="tval">40:00</span></div>
+    <button class="tbtn" id="tPlay">▶</button>
+    <button class="tbtn" id="notesBtn" title="Багшийн тэмдэглэл (N)">📝</button>
+    <button class="tbtn" id="fsBtn" title="Бүтэн дэлгэц (F)">⛶</button>
+  </div>
+</header>
+
+<main class="deck">
+
+<!-- 0. Intro -->
+<section class="slide" data-name="Танилцуулга" data-min="1"
+  data-notes="Хүүхдүүдтэй мэндэлнэ: “Өнөөдөр бид Тэнгисийн академийн курсантууд боллоо!”|Хичээлийн явц: тоон шулуун дээрх хөлөг → тэнхлэг ба координатын эх → цэг тэмдэглэх, унших → Далайн тулаан (хосоороо/багаар) → координатаар зураг зурах → нууц зураг солилцох → шалгалт.|Дээд мөрөнд 4 цол бий: ⚓ Курсант, 🧭 Жолооч, 🎯 Буудагч, 🗺️ Зураглаач — даалгавар гүйцэтгэх тусам асна.|▶ товчоор 40 минутын цагийг эхлүүлнэ.">
+  <div class="inner intro">
+    <div class="flag">
+      <svg class="rose" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="96" fill="none" stroke="#f6d58e" stroke-width="3"/>
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#f6d58e" stroke-width="1" stroke-dasharray="3 5"/>
+        <g fill="#9fbde0"><path d="M100 45 L108 92 L100 100 L92 92 Z" transform="rotate(45 100 100)"/><path d="M100 45 L108 92 L100 100 L92 92 Z" transform="rotate(135 100 100)"/><path d="M100 45 L108 92 L100 100 L92 92 Z" transform="rotate(225 100 100)"/><path d="M100 45 L108 92 L100 100 L92 92 Z" transform="rotate(315 100 100)"/></g>
+        <g><path d="M100 10 L112 88 L100 100 Z" fill="#ff6f61"/><path d="M100 10 L88 88 L100 100 Z" fill="#fffdf7"/>
+        <g transform="rotate(90 100 100)"><path d="M100 10 L112 88 L100 100 Z" fill="#fffdf7"/><path d="M100 10 L88 88 L100 100 Z" fill="#f6d58e"/></g>
+        <g transform="rotate(180 100 100)"><path d="M100 10 L112 88 L100 100 Z" fill="#fffdf7"/><path d="M100 10 L88 88 L100 100 Z" fill="#f6d58e"/></g>
+        <g transform="rotate(270 100 100)"><path d="M100 10 L112 88 L100 100 Z" fill="#fffdf7"/><path d="M100 10 L88 88 L100 100 Z" fill="#f6d58e"/></g></g>
+        <circle cx="100" cy="100" r="7" fill="#0a1f3c" stroke="#f6d58e" stroke-width="3"/>
+      </svg>
+      <div>
+        <div class="school">🏫 1-р сургууль</div>
+        <div class="subject">Математик</div>
+        <div class="topic">Тэгш өнцөгт координатын хавтгай</div>
+        <div class="teacher">👩‍🏫 Багш: В. Гэрэлтуяа</div>
+        <div class="acad">⛵ Тэнгисийн академи · 5-р анги · Сурах бичиг 100–103-р тал</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 1. Think-Pair-Share: sea level -->
+<section class="slide" data-name="Бод · Хосл · Хуваалц: Далайн түвшин" data-min="3"
+  data-notes="Сурах бичгийн 100-р тал: Эверест (Жомолунгма) далайн түвшнээс дээш 8848 м, Марианы хонхор доош ≈11 000 м (номын бичвэрт 11032, зурагт 11022 гэж байгаа — аль алиныг “≈11 000 м” гэж тоймлоно).|Бод–Хосл–Хуваалц: 🤔 Бод товч → 1 мин ганцаараа бодно; 👫 Хосл → хажуугийн найзтайгаа ярилцана; 🗣️ Хуваалц → 2–3 хос ангид хэлнэ.|Гулсуураар цэгийг хөдөлгөж: далайн түвшин = 0, дээш = нэмэх (+), доош = хасах (−) гэдгийг харуулна.|Мянгатаар тоймлох: 8848 ≈ 9000; 11 022 ≈ 11 000.">
+  <div class="inner">
+    <span class="tag">Курсантын бэлтгэл</span>
+    <h2>🌊 Далайн түвшин бол тэг!</h2>
+    <div class="grid2" style="grid-template-columns:.9fr 1.1fr;align-items:start">
+      <div class="chartbox"><svg id="lvl" viewBox="0 0 380 450" style="max-height:calc(100vh - 330px)"></svg>
+        <div class="row" style="justify-content:center;padding:4px"><input type="range" id="lvR" min="-11500" max="9500" step="1" value="0" style="flex:1;accent-color:#ff6f61"><button class="btn sm" id="lvE">🏔️ Эверест</button><button class="btn sm" id="lvM">🌊 Хонхор</button></div></div>
+      <div class="card teal">
+        <div class="tps" id="tps"><button data-s="60">🤔 Бод</button><button data-s="60">👫 Хосл</button><button data-s="90">🗣️ Хуваалц</button></div>
+        <div class="big" id="tpsT">—</div>
+        <div class="qcard">1. Эверест далайн түвшнээс <b>дээш 8848 м</b>, Марианы хонхор <b>доош ≈11 022 м</b>. Тэдгээрийг тоогоор хэрхэн бичих вэ?<div class="ans">Дээш: <b>+8848 м</b> · Доош: <b>−11 022 м</b></div></div>
+        <div class="qcard">2. Эдгээр хэмжээг мянгатаар тоймлоорой.<div class="ans">8848 ≈ <b>9 000 м</b> · 11 022 ≈ <b>11 000 м</b></div></div>
+        <div class="qcard">3. Далайн түвшинд ямар тоо харгалзах вэ? Яагаад?<div class="ans"><b>0</b> — эндээс дээш, доош хэмжинэ. Энэ бол <b>эх цэг</b>!</div></div>
+        <button class="btn sand sm" id="tpsAns">💡 Хариу харах</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Number line -->
+<section class="slide" data-name="Тоон шулуун дээрх хөлөг" data-min="5"
+  data-notes="Сурах бичгийн 100-р тал, 1–3-р жишээ. Тоон шулуун дээрх D цэгт −1 харгалзана → D(−1) гэж бичнэ: энэ бол D цэгийн КООРДИНАТ.|⛵ Хөлөг хаана? — хөлгийн координатыг дэвтэртээ бичээд, нэг хүүхэд оруулна (санамсаргүй).|📍 Тэмдэглэ — 2-р жишээ: R(0), K(−3), M(5), D(−1); ⭐⭐⭐ P(2½), N(7¼).|⭐⭐⭐ 5 нэгж — 3-р жишээ: A(3)-аас 5 нэгж зайд C(−2), B(8).|3 зөв хариулбал ⚓ Курсант цол авна.">
+  <div class="inner">
+    <span class="tag">Алхам 1 · Нэг тэнхлэг</span>
+    <h2>⛵ Хөлөг шулуун дээр хаана байна?</h2>
+    <div class="chartbox"><svg id="nl" viewBox="0 0 900 190" style="max-height:calc(100vh - 470px);cursor:crosshair"></svg></div>
+    <div class="grid2" style="grid-template-columns:1fr 1fr;margin-top:12px;align-items:start">
+      <div class="card">
+        <div class="row" id="nlModes"><button class="btn ghost sm on" data-m="ship">⛵ Хөлөг хаана?</button><button class="btn ghost sm" data-m="mark">📍 Тэмдэглэ</button><button class="btn ghost sm" data-m="dist">⭐⭐⭐ 5 нэгж</button></div>
+        <div id="nlTask" style="font-size:20px;font-weight:700;margin-top:8px;min-height:30px"></div>
+        <div class="inp" id="nlInpRow" style="margin-top:4px">⛵ ( <input id="nlIn" placeholder="?"> ) <button class="btn teal sm" id="nlChk">✓</button><button class="btn ghost sm" id="nlNew">🎲</button></div>
+        <div class="feedback" id="nlFb"></div>
+      </div>
+      <div class="card sand">
+        <div class="def"><b>D(−1)</b> — тоон шулуун дээрх D цэгт <b>−1</b> тоо харгалзаж байна. Энэ тоог <b>D цэгийн координат</b> гэнэ.</div>
+        <div class="def s">0-ээс <b>баруун</b> тийш — нэмэх тоо, <b>зүүн</b> тийш — хасах тоо.</div>
+        <div class="score">Зөв: <span id="nlScore">0</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Axes -->
+<section class="slide" data-name="Хоёр тэнхлэг ба координатын эх" data-min="4"
+  data-notes="Сурах бичгийн 101-р тал. “Нэг цэг дээр эхлэлтэй харилцан перпендикуляр хоёр тэнхлэг авъя. Огтлолцлын цэгийг O гэж тэмдэглэн координатын эх гэе.”|▶ Алхам товчийг дараалан дарж: хэвтээ тэнхлэг → босоо тэнхлэг → O эх → хуваарь → тор → A(9, 10) → (10, 9).|A(9, 10): хэвтээ тэнхлэгийн 9, босоо тэнхлэгийн 10. ЭХЛЭЭД хэвтээ, ДАРАА нь босоо!|Асуулт (101-р тал): (9, 10) ба (10, 9) ижил үү? — Ялгаатай, өөр өөр цэг.|Анхаар: сурах бичигт хавтгайн цэгүүд зөвхөн 0-ээс их буюу тэнцүү координаттай (I мөч). Бид ч тэгж ажиллана.">
+  <div class="inner">
+    <span class="tag">Алхам 2 · Хоёр тэнхлэг</span>
+    <h2>🧭 Далайн зураг ингэж бүтдэг</h2>
+    <div class="grid2" style="grid-template-columns:.95fr 1.05fr;align-items:start">
+      <div class="chartbox"><canvas id="axC" width="580" height="540" style="max-height:calc(100vh - 250px);width:auto;max-width:100%"></canvas></div>
+      <div>
+        <div class="card teal">
+          <div class="row"><button class="btn coral" id="axNext">▶ Дараагийн алхам</button><button class="btn ghost sm" id="axReset">↺</button><span class="score" id="axStep">0 / 7</span></div>
+          <div id="axCap" style="font-size:20px;min-height:84px;margin-top:8px"></div>
+        </div>
+        <div class="card sand" style="margin-top:12px">
+          <div class="def"><b>O</b> — <b>координатын эх</b> (тэнхлэгүүд огтлолцох цэг).</div>
+          <div class="def s"><b>A(9, 10)</b>: эхний тоо — <b>хэвтээ</b> тэнхлэг, хоёр дахь тоо — <b>босоо</b> тэнхлэг.</div>
+          <div class="def c">🤔 (9, 10) ба (10, 9) ижил цэг үү? <button class="btn sm sand" id="axQ">Хариу</button> <span class="ans" id="axA" style="display:none;font-weight:700">Үгүй! Дараалал чухал — өөр өөр цэг.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Plot & read -->
+<section class="slide" data-name="Цэг тэмдэглэх ба унших" data-min="5"
+  data-notes="📍 Тэмдэглэ: өгсөн координатаар хөлгийг байрлуулна (хулганаа цэг дээр барихад (x, y) харагдана).|🔭 Унш: хөлгийн координатыг уншиж бичнэ (энд хулганы сануулга унтарсан).|⭐ Хялбар — 0…5 тор. ⭐⭐⭐ Эрдэнэсийн арал (101-р тал, 4-р жишээ): дал мод (9, 8), салхин сэнс (2, 4), далбаа (8, 4), байшин (4, 9). “Дал модноос зүүн тийш 5, доош 6” → эрдэнэс (4, 2).|Хүүхдүүд ээлжээр самбарт гарна; бусад нь дэвтэртээ бичнэ. 5 зөв → 🧭 Жолооч цол.">
+  <div class="inner">
+    <span class="tag">Алхам 3 · Дасгал</span>
+    <h2>📍 Тэмдэглэ, 🔭 унш!</h2>
+    <div class="grid2" style="grid-template-columns:1.05fr .95fr;align-items:start">
+      <div class="chartbox"><svg id="drG" class="gsvg" style="cursor:crosshair"></svg></div>
+      <div class="card">
+        <div class="row" id="drModes"><button class="btn ghost sm on" data-m="plot">📍 Тэмдэглэ</button><button class="btn ghost sm" data-m="read">🔭 Унш</button><button class="btn ghost sm" data-m="isl">🏝️ ⭐⭐⭐ Эрдэнэс</button></div>
+        <div class="row" style="margin-top:6px"><button class="btn ghost sm" id="drEasy">⭐ Хялбар (0–5)</button><button class="btn ghost sm" id="drSkip">🎲 Шинэ</button></div>
+        <div id="drTask" style="font-size:22px;font-weight:700;margin-top:10px;min-height:62px"></div>
+        <div class="inp" id="drInp" style="display:none">⛵ ( <input id="drX" placeholder="x"> , <input id="drY" placeholder="y"> ) <button class="btn teal sm" id="drChk">✓</button></div>
+        <div class="feedback" id="drFb"></div>
+        <div class="score">✅ Зөв: <span id="drScore">0</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Battle -->
+<section class="slide" data-name="Далайн тулаан" data-min="8"
+  data-notes="Ангийг 2 баг болгоно: 🔵 Цэнхэр флот, 🔴 Шүрэн флот. (Эсвэл хосоороо дэвтэр дээр тоглож, самбарт 2 хос гарна.)|1) Цэнхэр флот өөрийн далайд 3 хөлөг нууна — Шүрэн флот нүдээ анина. “Нуулаа” дарна. 2) Шүрэн флот мөн адил.|3) Ээлжээр: баг ярилцаад координат ХЭЛНЭ, багш/төлөөлөгч оруулна (Enter). 💥 оносон, 💦 алдсан. Ижил цэгт дахин буудвал ээлж хасагдахгүй.|⭐ Сануулга асаавал алдсан үед “ойрхон байна” гэж хэлнэ. ⭐⭐⭐: сануулгагүй тогло.|3 хөлгийг түрүүлж живүүлсэн баг ялна → 🎯 Буудагч цол.">
+  <div class="inner">
+    <span class="tag">Хосын тоглоом</span>
+    <h2>💥 Далайн тулаан</h2>
+    <div class="bctrl">
+      <div class="bmsg" id="bMsg"></div>
+      <div class="inp" id="bFire">🎯 ( <input id="bX" placeholder="x"> , <input id="bY" placeholder="y"> ) <button class="btn coral sm" id="bGo">Буудах!</button></div>
+      <button class="btn sand sm" id="bDone">✅ Нуулаа</button>
+      <button class="btn ghost sm" id="bRand" title="Санамсаргүй нуух">🎲</button>
+      <button class="btn ghost sm" id="bHint">⭐ Сануулга: унтраа</button>
+      <button class="btn ghost sm" id="bReset">↺</button>
+    </div>
+    <div class="bt">
+      <div class="card" id="bCardA" style="border-top-color:#2b6cb0"><h3><span>🔵 Цэнхэр флотын далай</span><span id="bHitA" class="score" style="font-size:18px"></span></h3><svg id="bGA"></svg><div class="blog" id="bLogA"></div></div>
+      <div class="card" id="bCardB"><h3><span>🔴 Шүрэн флотын далай</span><span id="bHitB" class="score" style="font-size:18px"></span></h3><svg id="bGB"></svg><div class="blog" id="bLogB"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Connect picture -->
+<section class="slide" data-name="Цэгүүдийг холбож зураг зурах" data-min="5"
+  data-notes="Сурах бичгийн 103-р тал, 539-р даалгавар: (2, 7), (4, 7), (6, 9), (8, 7), (7, 5), (8, 3), (6, 3), (5, 1), (4, 3), (2, 3), (2, 7) — дарааллаар нь хэрчмээр холбоно.|Хүүхэд бүр дэвтэртээ зурж, нэг нь самбарт дарж шалгана. Улаан хүрээтэй координат — дараагийн цэг.|⭐ Хялбар: ⛵ Дарвуулт онгоц.|⭐⭐⭐ 539: Үүссэн дүрсийн талбай = 28 нэгж.кв (тэгш өнцөгт 6 × 4 = 24, дээд гурвалжин +4, баруун талын хонхор −2, доод гурвалжин +2).|Дуусгавал 🗺️ Зураглаач цол.">
+  <div class="inner">
+    <span class="tag">Алхам 4 · Зураглаач</span>
+    <h2>✏️ Координатаар зураг бүтээе</h2>
+    <div class="grid2" style="grid-template-columns:1.05fr .95fr;align-items:start">
+      <div class="chartbox"><svg id="cnG" class="gsvg" style="cursor:crosshair"></svg></div>
+      <div class="card">
+        <div class="row" id="cnPics"><button class="btn ghost sm on" data-p="p539">📘 539-р даалгавар</button><button class="btn ghost sm" data-p="boat">⭐ ⛵ Дарвуулт онгоц</button><button class="btn ghost sm" id="cnRe">↺</button></div>
+        <div style="margin-top:8px;font-weight:700">Цэгүүдийг дарааллаар нь дарж холбоорой:</div>
+        <div class="chips" id="cnChips"></div>
+        <div class="feedback" id="cnFb"></div>
+        <div id="cnArea" class="def c" style="display:none">⭐⭐⭐ Үүссэн дүрсийн талбай хэд вэ? (1 нүд = 1 нэгж.кв)
+          <div class="inp" style="margin-top:4px"><input id="cnAIn" placeholder="?"> нэгж.кв <button class="btn teal sm" id="cnAChk">✓</button><button class="btn ghost sm" id="cnAHint">💡</button></div>
+          <div class="ans" id="cnAAns" style="font-size:16px">Тэгш өнцөгт 6 × 4 = 24; дээд гурвалжин +4; баруун хонхор −2; доод гурвалжин +2 → 28.</div>
+          <div class="feedback" id="cnAFb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Secret picture swap -->
+<section class="slide" data-name="Нууц зураг: солилцоорой" data-min="4"
+  data-notes="Хуваалц үе шат: хос бүр дэвтэртээ өөрийн нууц зургийг (загас, байшин, од, зангуу…) торон дээр зурж, оройнуудын координатыг дарааллаар нь бичнэ.|Дараа нь зөвхөн координатын жагсаалтаа хажуугийн хостойгоо солилцоод, зургийг нь сэргээн зурна.|Дэлгэц дээр: нэг хос ✏️ Зохиох горимд цэгүүдээ дарж зурна → 🙈 Нууж солилцох → нөгөө хос жагсаалтыг уншиж цэгүүдийг дарааллаар нь дарна.|Ярилцах: Координатыг буруу дарааллаар (y, x) бичвэл зураг юу болох вэ?">
+  <div class="inner">
+    <span class="tag">Хосоороо · Хуваалц</span>
+    <h2>🙈 Нууц зураг — координатаар илгээ!</h2>
+    <div class="grid2" style="grid-template-columns:1.05fr .95fr;align-items:start">
+      <div class="chartbox"><svg id="scG" class="gsvg" style="cursor:crosshair"></svg></div>
+      <div class="card teal">
+        <div id="scMode" class="tag" style="background:var(--coral);color:#fff">✏️ Зохиох горим</div>
+        <div id="scHelp" style="font-size:18px;margin:4px 0">Торон дээр цэгүүдийг дараалан дарж зургаа зур. Координат нь доор бичигдэнэ.</div>
+        <div class="chips" id="scChips"></div>
+        <div class="row" id="scBtns"><button class="btn ghost sm" id="scUndo">↶ Буцаах</button><button class="btn ghost sm" id="scClr">🗑️ Арилгах</button><button class="btn coral sm" id="scHide">🙈 Нууж солилцох</button><button class="btn sand sm" id="scShow" style="display:none">👀 Эх зургийг харах</button><button class="btn ghost sm" id="scNew" style="display:none">✏️ Шинэ зураг</button></div>
+        <div class="feedback" id="scFb"></div>
+        <div class="def s" style="font-size:16px">💡 Санаа: загас, байшин, од, сум, зангуу, туг… Жагсаалтаа дэвтэртээ бичээд найзтайгаа солилцоорой!</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Exit check -->
+<section class="slide" data-name="Гарах шалгалт" data-min="3"
+  data-notes="Хүүхэд бүр самбараа (эсвэл дэвтэр) дээр хариугаа бичээд өргөнө; дараа нь дэлгэц дээр шалгана.|1) 527: M(−2), N(4) зай = 6. 2) Зурган дээрх цэг (3, 5). 3) (6, 2) цэгийг тэмдэглэ. 4) 529: −2°C ба +7°C зөрөө = 9°. 5) Координатын эх O(0, 0).">
+  <div class="inner">
+    <span class="tag">Шалгалт</span>
+    <h2>🏁 Ахмадын шалгалт <span class="score" style="color:var(--sand);font-size:24px">— <span id="exScore">0</span> / 5</span></h2>
+    <div class="exit" id="exit">
+      <div class="card"><div class="q">1. Тоон шулуун дээрх M(−2), N(4) цэгүүдийн хоорондох зай хэд вэ? <span class="muted">(527)</span></div>
+        <div class="inp"><input id="ex1" placeholder="?"> нэгж <button class="btn teal sm" id="ex1b">✓</button></div><div class="feedback" id="ex1f"></div></div>
+      <div class="card teal"><div class="q">2. ⛵ хөлгийн координат аль нь вэ?</div><svg id="ex2G"></svg>
+        <div class="opts" id="ex2"><button data-v="0">(5, 3)</button><button data-v="1">(3, 5)</button><button data-v="0">(3, 3)</button></div><div class="feedback" id="ex2f"></div></div>
+      <div class="card sand"><div class="q">3. <b>(6, 2)</b> цэг дээр дарж тэмдэглээрэй.</div><svg id="ex3G" style="cursor:crosshair"></svg><div class="feedback" id="ex3f"></div></div>
+      <div class="card sand"><div class="q">4. Шөнө −2°C, өдөр +7°C байв. Өдөр шөнийн температурын зөрөө хэдэн градус вэ? <span class="muted">(529)</span></div>
+        <div class="inp"><input id="ex4" placeholder="?"> ° <button class="btn teal sm" id="ex4b">✓</button></div><div class="feedback" id="ex4f"></div></div>
+      <div class="card"><div class="q">5. Координатын эх O цэгийн координат аль нь вэ?</div>
+        <div class="opts" id="ex5"><button data-v="0">(1, 1)</button><button data-v="1">(0, 0)</button><button data-v="0">(0, 1)</button></div><div class="feedback" id="ex5f"></div></div>
+      <div class="card teal" style="display:flex;flex-direction:column;justify-content:center;text-align:center"><div style="font-size:54px">⚓</div><div id="exMsg" style="font-weight:700;font-size:19px">5 асуултад хариулаарай!</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Homework & reflection -->
+<section class="slide" data-name="Бортын тэмдэглэл ба гэрийн даалгавар" data-min="2"
+  data-notes="Өгүүлбэрүүдийг ангиараа гүйцээнэ. Одоор өөрийгөө үнэлнэ.|Гэрийн даалгавар (102–103-р тал): 530 — A(−3), B(4), C(−1), D(7): 6 хэрчим; уртууд буурах эрэмбээр 10, 8, 7, 5, 3, 2.|534 — 4 цэгийг координаттай нь холбох. 535 — дөрвөн өнцөгтийн C цэг, D(3, 5) цэгийг тэмдэглэж талбайг олох (зурагнаас).|538 — A(2, 2), B(2, 7), C(8, 2), D(8, 5) цэгүүдийг тэмдэглэж холбоно (A–B–D–C): трапец, талбай = (5 + 3) : 2 × 6 = 24 нэгж.кв.">
+  <div class="inner">
+    <span class="tag">Төгсгөл</span>
+    <h2>📓 Бортын тэмдэглэл</h2>
+    <div class="grid2" style="grid-template-columns:1.15fr .85fr;align-items:start">
+      <div class="card frames">
+        <div class="fr">Координатын эх гэдэг нь <div contenteditable="true" data-k="m_coord_f1" data-ph="тэнхлэгүүд огтлолцох O цэг…"></div></div>
+        <div class="fr">A(4, 7) цэгийг олохдоо эхлээд <div contenteditable="true" data-k="m_coord_f2" data-ph="хэвтээ тэнхлэгээр 4, дараа нь дээш 7…"></div></div>
+        <div class="fr">Далайн тулаанд би <div contenteditable="true" data-k="m_coord_f3" data-ph="…"></div></div>
+        <div class="fr">Координатыг өдөр тутам <div contenteditable="true" data-k="m_coord_f4" data-ph="газрын зураг, шатар, кино театрын суудал…"></div></div>
+        <div style="margin-top:6px"><b>Миний цол:</b> <span id="rankSum"></span></div>
+      </div>
+      <div class="card sand">
+        <h3>⭐ Өнөөдөр хэр сайн жолоодов?</h3>
+        <div class="stars3" id="stars3"><button>⭐</button><button>⭐</button><button>⭐</button></div>
+        <h3 style="margin-top:8px">🏠 Гэрийн даалгавар</h3>
+        <ul class="hw">
+          <li><b>530</b> — A(−3), B(4), C(−1), D(7) цэгүүдийг тоон шулуун дээр тэмдэглэ.</li>
+          <li><b>534, 535</b> — цэгүүдийн координатыг бичих, тэмдэглэх.</li>
+          <li><b>538</b> — A(2, 2), B(2, 7), C(8, 2), D(8, 5) цэгүүдийг холбож, талбайг ол.</li>
+        </ul>
+        <p style="font-family:var(--hfont);font-size:22px;text-align:center;margin:8px 0 0;color:var(--sea)">Баярлалаа, ахмадууд аа! ⚓</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="nav">
+  <button class="btn" id="prevBtn">◀ Өмнөх</button>
+  <div class="dots" id="dots"></div>
+  <button class="btn" id="nextBtn">Дараах ▶</button>
+</nav>
+<div class="tnotes" id="tnotes"><h4>📝 Багшид зориулсан зөвлөмж</h4><ul id="tnList"></ul></div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* ---------- Helpers ---------- */
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const SVGNS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent,text){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e}
+const P=(x,y)=>'('+x+', '+y+')';
+const num=s=>{s=String(s).trim().replace(/−|–/g,'-').replace(/\s/g,'');if(!/^-?\d+$/.test(s))return NaN;return parseInt(s,10)};
+function fb(id,ok,t){const f=$(id);f.className='feedback '+(ok?'ok':'no');f.textContent=t}
+
+/* ---------- Ranks ---------- */
+const RK={};
+function rank(k){if(RK[k])return;RK[k]=true;$('rk'+k).classList.add('on');confetti(90);rankSum()}
+function rankSum(){const n=['⚓ Курсант','🧭 Жолооч','🎯 Буудагч','🗺️ Зураглаач'];const s=n.filter((t,i)=>RK[i+1]);$('rankSum').textContent=s.length?s.join(' · '):'— (дараагийн хичээлд!)'}
+
+/* ---------- Coordinate grid (first quadrant) ---------- */
+function Grid(svg,o){
+  o=Object.assign({n:10,cell:44,hover:true,fs:18},o);
+  const n=o.n,c=o.cell,L=Math.round(c*.75)+12,B=Math.round(c*.7)+10,T=20,R=26;
+  const W=L+n*c+R,H=T+n*c+B;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
+  const X=x=>L+x*c,Y=y=>T+(n-y)*c;
+  el('rect',{x:0,y:0,width:W,height:H,fill:'#eaf4fb',rx:10},svg);
+  const g0=el('g',{},svg);
+  for(let i=0;i<=n;i++){
+    el('line',{x1:X(i),y1:Y(0),x2:X(i),y2:Y(n),stroke:'#9cc3e6','stroke-width':1.2},g0);
+    el('line',{x1:X(0),y1:Y(i),x2:X(n),y2:Y(i),stroke:'#9cc3e6','stroke-width':1.2},g0);
+    if(i>0){el('text',{x:X(i),y:Y(0)+o.fs+6,'text-anchor':'middle','font-size':o.fs,'font-weight':700,fill:'#123a6b',class:'svgtext'},g0,i);
+      el('text',{x:X(0)-8,y:Y(i)+o.fs*.35,'text-anchor':'end','font-size':o.fs,'font-weight':700,fill:'#123a6b',class:'svgtext'},g0,i)}
+  }
+  el('line',{x1:X(0),y1:Y(0),x2:X(n)+18,y2:Y(0),stroke:'#0a1f3c','stroke-width':3},g0);
+  el('line',{x1:X(0),y1:Y(0),x2:X(0),y2:Y(n)-16,stroke:'#0a1f3c','stroke-width':3},g0);
+  el('polygon',{points:`${X(n)+24},${Y(0)} ${X(n)+12},${Y(0)-6} ${X(n)+12},${Y(0)+6}`,fill:'#0a1f3c'},g0);
+  el('polygon',{points:`${X(0)},${Y(n)-20} ${X(0)-6},${Y(n)-8} ${X(0)+6},${Y(n)-8}`,fill:'#0a1f3c'},g0);
+  el('text',{x:X(0)-8,y:Y(0)+o.fs+6,'text-anchor':'end','font-size':o.fs,'font-weight':800,fill:'#d94c3f',class:'svgtext'},g0,'O');
+  const layer=el('g',{},svg);
+  const hv=el('g',{visibility:'hidden','pointer-events':'none'},svg);
+  const hc=el('circle',{r:Math.max(7,c*.2),fill:'none',stroke:'#ff6f61','stroke-width':3},hv);
+  const hr=el('rect',{rx:6,height:o.fs+10,width:o.fs*3.9,fill:'#0a1f3c'},hv);
+  const ht=el('text',{fill:'#f6d58e','font-size':o.fs,'font-weight':700,'text-anchor':'middle',class:'svgtext'},hv);
+  const G={svg,n,c,X,Y,layer,hover:o.hover,onclick:null,fs:o.fs,
+    clear(){layer.innerHTML=''},
+    pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const m=svg.getScreenCTM();if(!m)return null;const q=p.matrixTransform(m.inverse());
+      const x=Math.round((q.x-L)/c),y=Math.round(n-(q.y-T)/c);if(x<0||y<0||x>n||y>n)return null;return{x,y}},
+    hide(){hv.setAttribute('visibility','hidden')},
+    move(e){if(!G.hover){G.hide();return}const p=G.pt(e);if(!p){G.hide();return}
+      const px=X(p.x),py=Y(p.y);hc.setAttribute('cx',px);hc.setAttribute('cy',py);ht.textContent=P(p.x,p.y);
+      const w=+hr.getAttribute('width'),h=+hr.getAttribute('height');let rx=px+12,ry=py-h-10;if(rx+w>W)rx=px-w-12;if(ry<0)ry=py+12;
+      hr.setAttribute('x',rx);hr.setAttribute('y',ry);ht.setAttribute('x',rx+w/2);ht.setAttribute('y',ry+h*.72);hv.setAttribute('visibility','visible')},
+    dot(x,y,a){a=Object.assign({r:Math.max(6,c*.16),fill:'#ff6f61'},a||{});return el('circle',{cx:X(x),cy:Y(y),r:a.r,fill:a.fill,stroke:'#fff','stroke-width':2},layer)},
+    emo(x,y,t,size){return el('text',{x:X(x),y:Y(y)+size*.35,'text-anchor':'middle','font-size':size,'pointer-events':'none'},layer,t)},
+    lab(x,y,t,col){return el('text',{x:X(x)+10,y:Y(y)-10,'font-size':o.fs,'font-weight':800,fill:col||'#0a1f3c',stroke:'#eaf4fb','stroke-width':4,'paint-order':'stroke',class:'svgtext'},layer,t)},
+    seg(a,b,col,w){return el('line',{x1:X(a[0]),y1:Y(a[1]),x2:X(b[0]),y2:Y(b[1]),stroke:col||'#123a6b','stroke-width':w||4,'stroke-linecap':'round'},layer)}
+  };
+  svg._G=G;
+  if(!svg._bound){svg._bound=1;
+    svg.addEventListener('mousemove',e=>svg._G.move(e));
+    svg.addEventListener('mouseleave',()=>svg._G.hide());
+    svg.addEventListener('click',e=>{const g=svg._G,p=g.pt(e);if(p&&g.onclick)g.onclick(p)});
+  }
+  return G;
+}
+
+/* ---------- Slides ---------- */
+const slides=[...document.querySelectorAll('.slide')];const dots=$('dots');let cur=0;
+slides.forEach((s,i)=>{const b=document.createElement('button');b.className='dot';b.textContent=String(i+1).padStart(2,'0');b.title=s.dataset.name;b.onclick=()=>go(i);dots.appendChild(b)});
+function go(i){
+  cur=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach((s,j)=>s.classList.toggle('active',j===cur));
+  [...dots.children].forEach((d,j)=>{d.classList.toggle('on',j===cur);d.classList.toggle('done',j<cur)});
+  const s=slides[cur];
+  $('stageName').textContent=s.dataset.name;$('sheetNo').textContent='Хуудас '+(cur+1)+'/'+slides.length;
+  $('tnList').innerHTML='<li>⏱ Зөвлөмж хугацаа: ≈'+s.dataset.min+' мин</li>'+s.dataset.notes.split('|').map(t=>'<li>'+t+'</li>').join('');
+  $('prevBtn').disabled=cur===0;$('nextBtn').textContent=cur===slides.length-1?'🏁 Төгсгөл':'Дараах ▶';
+  if(s.contains($('axC')))aDraw();
+  if(s.contains($('rankSum')))rankSum();
+}
+$('prevBtn').onclick=()=>go(cur-1);$('nextBtn').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{
+  const t=e.target;if(t.isContentEditable||t.tagName==='INPUT'||t.tagName==='TEXTAREA')return;
+  if(e.key==='ArrowRight'||e.key==='PageDown')go(cur+1);
+  else if(e.key==='ArrowLeft'||e.key==='PageUp')go(cur-1);
+  else if(e.key==='f'||e.key==='F')toggleFS();
+  else if(e.key==='n'||e.key==='N')toggleNotes();
+});
+function toggleFS(){if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()}
+function toggleNotes(){$('tnotes').classList.toggle('show')}
+$('fsBtn').onclick=toggleFS;$('notesBtn').onclick=toggleNotes;
+
+/* ---------- Timer ---------- */
+let remain=40*60,running=false,tick=null;
+function drawT(){const a=Math.abs(remain),m=Math.floor(a/60),s=a%60;$('tval').textContent=(remain<0?'+':'')+m+':'+String(s).padStart(2,'0');$('timer').className='timer'+(remain<0?' over':remain<=300?' warn':'')}
+$('tPlay').onclick=()=>{running=!running;$('tPlay').textContent=running?'⏸':'▶';if(running)tick=setInterval(()=>{remain--;drawT()},1000);else clearInterval(tick)};
+$('timer').ondblclick=()=>{remain=40*60;drawT()};drawT();
+
+/* ---------- Editable frames ---------- */
+document.querySelectorAll('[data-k]').forEach(e=>{const k=e.dataset.k;e.textContent=store.get(k)||'';e.addEventListener('input',()=>store.set(k,e.innerText))});
+
+/* ================= 1. Sea level + TPS ================= */
+(()=>{const s=$('lvl');const yv=v=>20+(10000-v)/22000*410;
+  const defs=el('defs',{},s);const lg=el('linearGradient',{id:'seaG',x1:0,y1:0,x2:0,y2:1},defs);
+  el('stop',{offset:0,'stop-color':'#4f9be0'},lg);el('stop',{offset:1,'stop-color':'#0a1f3c'},lg);
+  el('rect',{x:0,y:0,width:380,height:yv(0),fill:'#dff0ff'},s);
+  el('rect',{x:0,y:yv(0),width:380,height:450-yv(0),fill:'url(#seaG)'},s);
+  el('polygon',{points:`150,${yv(0)} 205,${yv(8848)} 230,${yv(6000)} 270,${yv(0)}`,fill:'#8a9bb0',stroke:'#4d6585','stroke-width':2},s);
+  el('polygon',{points:`190,${yv(8848)} 205,${yv(8848)} 213,${yv(7000)} 196,${yv(7400)}`,fill:'#fff'},s);
+  el('polygon',{points:`230,${yv(0)} 290,${yv(-3000)} 318,${yv(-11022)} 334,${yv(-3500)} 380,${yv(-2500)} 380,450 230,450`,fill:'#06152a',opacity:.75},s);
+  for(let v=-10000;v<=10000;v+=2000){const y=yv(v);el('line',{x1:60,y1:y,x2:72,y2:y,stroke:v>=0?'#123a6b':'#fff','stroke-width':2},s);
+    el('text',{x:56,y:y+5,'text-anchor':'end','font-size':14,'font-weight':700,fill:v>=0?'#123a6b':'#e8f3ff',class:'svgtext'},s,(v>0?'+':v<0?'−':'')+Math.abs(v))}
+  el('line',{x1:72,y1:10,x2:72,y2:445,stroke:'#0a1f3c','stroke-width':2.5},s);
+  el('line',{x1:72,y1:yv(0),x2:380,y2:yv(0),stroke:'#ff6f61','stroke-width':3,'stroke-dasharray':'8 5'},s);
+  el('text',{x:100,y:yv(0)-8,'font-size':16,'font-weight':800,fill:'#d94c3f',class:'svgtext'},s,'0 — далайн түвшин');
+  el('text',{x:212,y:yv(8848)-6,'font-size':15,'font-weight':700,fill:'#123a6b',class:'svgtext'},s,'🏔️ Эверест');
+  el('text',{x:236,y:yv(-11022)+4,'text-anchor':'end','font-size':15,'font-weight':700,fill:'#fff',class:'svgtext'},s,'Марианы хонхор');
+  const mk=el('g',{},s);const tri=el('polygon',{points:'0,0 -14,-8 -14,8',fill:'#f6d58e',stroke:'#0a1f3c','stroke-width':1.5},mk);
+  const box=el('rect',{x:-150,y:-34,width:136,height:26,rx:6,fill:'#0a1f3c'},mk);const tx=el('text',{x:-82,y:-15,'text-anchor':'middle','font-size':16,'font-weight':800,fill:'#f6d58e',class:'svgtext'},mk);
+  function upd(){const v=+$('lvR').value;mk.setAttribute('transform',`translate(${86+150},${yv(v)})`);tri.setAttribute('transform','rotate(180)');
+    tri.setAttribute('points','0,0 14,-8 14,8');mk.setAttribute('transform',`translate(${76},${yv(v)})`);box.setAttribute('x',18);tx.setAttribute('x',86);
+    tx.textContent=(v>0?'+':v<0?'−':'')+Math.abs(v).toLocaleString('ru-RU')+' м'}
+  $('lvR').oninput=upd;$('lvE').onclick=()=>{$('lvR').value=8848;upd()};$('lvM').onclick=()=>{$('lvR').value=-11022;upd()};upd();
+  let tt=null,left=0;const bs=[...document.querySelectorAll('#tps button')];
+  bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle('on',x===b));clearInterval(tt);left=+b.dataset.s;
+    const show=()=>{$('tpsT').textContent=b.textContent+' · '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0')};show();
+    tt=setInterval(()=>{left--;if(left<=0){clearInterval(tt);$('tpsT').textContent=b.textContent+' · ⏰ Цаг дууслаа!';return}show()},1000)});
+  $('tpsAns').onclick=()=>document.querySelectorAll('#lvl ~ x, .qcard .ans').forEach(a=>a.classList.toggle('show'));
+})();
+
+/* ================= 2. Number line ================= */
+const NL={svg:$('nl'),x:v=>60+(v+5)*52};
+let nlMode='ship',nlShip=0,nlScore=0,nlTasks=[],nlTi=0,nlDist=[];
+const NLT=[{l:'R',v:0},{l:'K',v:-3},{l:'M',v:5},{l:'D',v:-1},{l:'P',v:2.5,s:.5,star:1},{l:'N',v:7.25,s:.25,star:1}];
+function frac(v){const a=Math.abs(v),w=Math.floor(a),f=a-w;const fs=f===.5?'½':f===.25?'¼':f===.75?'¾':'';return(v<0?'−':'')+(w||!fs?w:'')+fs}
+function nlBase(){const s=NL.svg;s.innerHTML='';
+  el('rect',{x:0,y:0,width:900,height:190,fill:'#eaf4fb',rx:10},s);
+  el('line',{x1:30,y1:120,x2:878,y2:120,stroke:'#0a1f3c','stroke-width':3},s);
+  el('polygon',{points:'890,120 876,113 876,127',fill:'#0a1f3c'},s);
+  for(let q=-20;q<=40;q++){const v=q/4,x=NL.x(v);if(q%4===0){el('line',{x1:x,y1:108,x2:x,y2:132,stroke:'#0a1f3c','stroke-width':v===0?4:2},s);
+      el('text',{x,y:160,'text-anchor':'middle','font-size':22,'font-weight':v===0?800:700,fill:v<0?'#d94c3f':v===0?'#0a1f3c':'#123a6b',class:'svgtext'},s,frac(v))}
+    else el('line',{x1:x,y1:115,x2:x,y2:125,stroke:'#7ea6cc','stroke-width':1.2},s)}
+  NL.layer=el('g',{},s)}
+function nlV(e,step){const s=NL.svg,p=s.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(s.getScreenCTM().inverse());let v=(q.x-60)/52-5;v=Math.round(v/step)*step;return Math.max(-5,Math.min(10,v))}
+function nlPin(v,l,col){const x=NL.x(v);el('circle',{cx:x,cy:120,r:9,fill:col||'#ff6f61',stroke:'#fff','stroke-width':2},NL.layer);
+  el('text',{x,y:96,'text-anchor':'middle','font-size':20,'font-weight':800,fill:col||'#d94c3f',class:'svgtext'},NL.layer,l)}
+function nlScoreUp(){nlScore++;$('nlScore').textContent=nlScore;if(nlScore>=3)rank(1)}
+function nlSet(m){nlMode=m;document.querySelectorAll('#nlModes button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('nlFb').textContent='';nlBase();
+  $('nlInpRow').style.display=m==='ship'?'':'none';
+  if(m==='ship')nlNewShip();
+  else if(m==='mark'){nlTi=0;nlPin(-1,'D',"#1fae9f");nlTi=0;nlTaskShow()}
+  else{nlDist=[];nlPin(3,'A','#123a6b');$('nlTask').innerHTML='A(3) цэгээс <b>5 нэгж</b> зайд орших 2 цэгийг дарж ол!'}}
+function nlNewShip(){let v;do v=ri(-5,10);while(v===nlShip);nlShip=v;nlBase();const x=NL.x(v);
+  el('line',{x1:x,y1:84,x2:x,y2:118,stroke:'#ff6f61','stroke-width':2,'stroke-dasharray':'4 3'},NL.layer);
+  el('text',{x,y:80,'text-anchor':'middle','font-size':44},NL.layer,'⛵');
+  $('nlTask').textContent='Хөлгийн координат хэд вэ?';$('nlIn').value='';$('nlIn').className='';$('nlFb').textContent=''}
+function nlTaskShow(){const t=NLT[nlTi];if(!t){$('nlTask').textContent='🎉 Бүх цэгийг тэмдэглэлээ!';return}
+  $('nlTask').innerHTML=(t.star?'⭐⭐⭐ ':'')+'<b>'+t.l+'('+frac(t.v)+')</b> цэгийг тэмдэглээрэй.'}
+$('nlChk').onclick=()=>{const v=num($('nlIn').value);if(v===nlShip){$('nlIn').className='ok';fb('nlFb',1,'🎉 Зөв! ⛵('+frac(v)+')');nlScoreUp();confetti(30);setTimeout(nlNewShip,1100)}
+  else{$('nlIn').className='no';fb('nlFb',0,'🤔 0-ээс хэдэн алхам, аль тийш байна вэ? Дахин тоол.')}};
+$('nlIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('nlChk').click()});
+$('nlNew').onclick=nlNewShip;
+NL.svg.addEventListener('click',e=>{
+  if(nlMode==='mark'){const t=NLT[nlTi];if(!t)return;const v=nlV(e,t.s||1);
+    if(Math.abs(v-t.v)<1e-9){nlPin(v,t.l);fb('nlFb',1,'✅ '+t.l+'('+frac(v)+') — зөв!');nlScoreUp();nlTi++;nlTaskShow()}
+    else fb('nlFb',0,'Та '+frac(v)+' дээр дарлаа. '+t.l+'('+frac(t.v)+') нь 0-ээс '+(t.v<0?'ЗҮҮН':'БАРУУН')+' тийш байна.')}
+  else if(nlMode==='dist'){const v=nlV(e,1);if(v===-2||v===8){if(nlDist.includes(v))return;nlDist.push(v);nlPin(v,v===-2?'C':'B');
+      fb('nlFb',1,(v===-2?'C(−2)':'B(8)')+' — 5 нэгж зайтай! '+(nlDist.length===2?'🎉 Хоёуланг нь оллоо!':'Дахиад нэг цэг бий.'));if(nlDist.length===2){nlScoreUp();confetti(50)}}
+    else fb('nlFb',0,frac(v)+' нь A(3)-аас '+Math.abs(v-3)+' нэгж зайтай байна.')}
+});
+document.querySelectorAll('#nlModes button').forEach(b=>b.onclick=()=>nlSet(b.dataset.m));
+nlSet('ship');
+
+/* ================= 3. Axes animation ================= */
+const ac=$('axC'),ax=ac.getContext('2d');const AO={x:60,y:490},AC=46;
+const AX=x=>AO.x+x*AC,AY=y=>AO.y-y*AC;
+let aStage=0,aT=1,aRaf=null;
+const CAPS=['Далай хоосон байна. Бид байршлыг яаж заах вэ? ▶ дар.',
+ '① <b>Хэвтээ тэнхлэг</b> татлаа. Дээр нь тоонууд байрлана (x).',
+ '② <b>Босоо тэнхлэг</b> — хэвтээ тэнхлэгт <b>перпендикуляр</b> (y).',
+ '③ Огтлолцлын цэг <b>O</b> — <b>координатын эх</b>. Энд хоёр тэнхлэг хоёулаа 0.',
+ '④ Нэгж урттай хэрчмээр <b>хуваарь</b> тогтооно: 1, 2, 3, …',
+ '⑤ Хуваариар шугам татахад <b>координатын тор</b> үүснэ.',
+ '⑥ ⛵ O-оос <b>баруун тийш 9</b>, <b>дээш 10</b> → <b>A(9, 10)</b>.',
+ '⑦ ⛵ <b>баруун тийш 10</b>, <b>дээш 9</b> → <b>(10, 9)</b>. A-тай ижил үү? Үгүй!'];
+const ADUR=[0,900,900,800,900,900,2600,2600];
+function aDraw(){const c=ax;const f=k=>k<aStage?1:k===aStage?aT:0;
+  c.clearRect(0,0,580,540);c.fillStyle='#eaf4fb';c.fillRect(0,0,580,540);
+  // grid (stage 5)
+  const g=f(5);if(g>0){c.save();c.globalAlpha=g;c.strokeStyle='#9cc3e6';c.lineWidth=1.2;for(let i=1;i<=10;i++){c.beginPath();c.moveTo(AX(i),AY(0));c.lineTo(AX(i),AY(10));c.stroke();c.beginPath();c.moveTo(AX(0),AY(i));c.lineTo(AX(10),AY(i));c.stroke()}c.restore()}
+  c.strokeStyle='#0a1f3c';c.fillStyle='#0a1f3c';c.lineWidth=3.5;
+  const h=f(1);if(h>0){const xe=AO.x+(AX(10)+30-AO.x)*h;c.beginPath();c.moveTo(AO.x,AO.y);c.lineTo(xe,AO.y);c.stroke();if(h===1){c.beginPath();c.moveTo(xe+6,AO.y);c.lineTo(xe-8,AO.y-7);c.lineTo(xe-8,AO.y+7);c.fill();atx('x',xe,AO.y+24,22,'#0a1f3c')}}
+  const v=f(2);if(v>0){const ye=AO.y-(AO.y-AY(10)+28)*v;c.beginPath();c.moveTo(AO.x,AO.y);c.lineTo(AO.x,ye);c.stroke();if(v===1){c.beginPath();c.moveTo(AO.x,ye-6);c.lineTo(AO.x-7,ye+8);c.lineTo(AO.x+7,ye+8);c.fill();atx('y',AO.x-22,ye+6,22,'#0a1f3c')}}
+  const o=f(3);if(o>0){c.save();c.globalAlpha=o;c.strokeStyle='#ff6f61';c.lineWidth=3;c.beginPath();c.arc(AO.x,AO.y,8+14*(1-o),0,7);c.stroke();c.fillStyle='#ff6f61';c.beginPath();c.arc(AO.x,AO.y,6,0,7);c.fill();atx('O',AO.x-18,AO.y+22,22,'#d94c3f');c.restore()}
+  const t=f(4);if(t>0){c.save();c.globalAlpha=t;c.strokeStyle='#0a1f3c';c.lineWidth=2;for(let i=1;i<=10;i++){c.beginPath();c.moveTo(AX(i),AO.y-6);c.lineTo(AX(i),AO.y+6);c.stroke();c.beginPath();c.moveTo(AO.x-6,AY(i));c.lineTo(AO.x+6,AY(i));c.stroke();atx(i,AX(i),AO.y+24,18,'#123a6b');atx(i,AO.x-22,AY(i),18,'#123a6b')}c.restore()}
+  sail(f(6),[9,10],'#ff6f61','A(9, 10)');sail(f(7),[10,9],'#1fae9f','(10, 9)');
+}
+function atx(t,x,y,s,col){const c=ax;c.save();c.font=`800 ${s}px Rubik, sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillStyle=col;c.fillText(t,x,y);c.restore()}
+function sail(p,[tx,ty],col,label){if(p<=0)return;const c=ax,L=tx+ty;let d=p*L,x,y;if(d<=tx){x=d;y=0}else{x=tx;y=d-tx}
+  c.save();c.strokeStyle=col;c.lineWidth=4;c.setLineDash([10,7]);c.beginPath();c.moveTo(AX(0),AY(0));c.lineTo(AX(Math.min(d,tx)),AY(0));if(d>tx)c.lineTo(AX(tx),AY(y));c.stroke();c.restore();
+  if(d>=tx)atx(tx,AX(tx/2),AY(0)-16,20,col);if(p===1)atx(ty,AX(tx)+(tx===10?-18:18),AY(ty/2),20,col);
+  c.save();c.font='34px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('⛵',AX(x),AY(y)-6);c.restore();
+  if(p===1){c.fillStyle=col;c.beginPath();c.arc(AX(tx),AY(ty),8,0,7);c.fill();c.save();c.font='800 20px Rubik, sans-serif';c.textAlign=tx===10?'right':'left';c.fillStyle=col;c.strokeStyle='#eaf4fb';c.lineWidth=5;
+    const lx=tx===10?AX(tx)-14:AX(tx)-120,ly=AY(ty)-(ty===10?-26:18);c.strokeText(label,lx,ly);c.fillText(label,lx,ly);c.restore()}}
+function aCap(){$('axCap').innerHTML=CAPS[aStage];$('axStep').textContent=aStage+' / 7'}
+$('axNext').onclick=()=>{if(aStage>=7)return;if(aT<1){aT=1;aDraw()}aStage++;aT=0;aCap();const t0=performance.now(),dur=ADUR[aStage];cancelAnimationFrame(aRaf);
+  const step=now=>{aT=Math.min(1,(now-t0)/dur);aDraw();if(aT<1)aRaf=requestAnimationFrame(step);else if(aStage===7)confetti(40)};aRaf=requestAnimationFrame(step)};
+$('axReset').onclick=()=>{cancelAnimationFrame(aRaf);aStage=0;aT=1;aCap();aDraw();$('axA').style.display='none'};
+$('axQ').onclick=()=>{$('axA').style.display='inline'};
+aCap();aDraw();
+
+/* ================= 4. Plot & read drills ================= */
+let dMode='plot',dEasy=false,dScore=0,dT=null,dG=null,dBusy=false;
+const ISL=[{n:'Дал мод',abl:'Дал модноос',e:'🌴',x:9,y:8},{n:'Салхин сэнс',abl:'Салхин сэнснээс',e:'🌀',x:2,y:4},{n:'Далбаа',abl:'Далбаанаас',e:'🚩',x:8,y:4},{n:'Байшин',abl:'Байшингаас',e:'🏠',x:4,y:9}];
+let islFirst=true;
+function dBuild(){const n=(dEasy&&dMode!=='isl')?5:10;dG=Grid($('drG'),{n,cell:n===5?80:44,fs:n===5?24:18,hover:dMode!=='read'});dG.onclick=dClick}
+function dNew(){dBuild();dBusy=false;$('drFb').textContent='';const n=dG.n;$('drInp').style.display=dMode==='read'?'':'none';
+  if(dMode==='plot'){dT={x:ri(0,n),y:ri(0,n)};if(dT.x===0&&dT.y===0)dT.x=ri(1,n);$('drTask').innerHTML='⛵ хөлгийг <b style="color:#d94c3f">'+P(dT.x,dT.y)+'</b> цэгт байрлуул!'}
+  else if(dMode==='read'){dT={x:ri(1,n),y:ri(1,n)};dG.emo(dT.x,dT.y,'⛵',n===5?46:34);dG.dot(dT.x,dT.y,{r:5,fill:'#0a1f3c'});$('drTask').textContent='🔭 Хөлгийн координатыг уншаад бичээрэй.';
+    $('drX').value='';$('drY').value='';$('drX').className='';$('drY').className='';setTimeout(()=>$('drX').focus(),50)}
+  else{ISL.forEach(o=>{dG.emo(o.x,o.y,o.e,30)});let o,tx,ty;
+    if(islFirst){o=ISL[0];tx=4;ty=2;islFirst=false}else{do{o=ISL[ri(0,3)];tx=ri(0,10);ty=ri(0,10)}while((tx===o.x&&ty===o.y)||tx===o.x||ty===o.y||ISL.some(q=>q.x===tx&&q.y===ty))}
+    dT={x:tx,y:ty};const dx=tx-o.x,dy=ty-o.y;
+    $('drTask').innerHTML='🗝️ “'+o.abl+' <b>'+(dx<0?'зүүн':'баруун')+'</b> тийш '+Math.abs(dx)+' нэгж, тэндээсээ <b>'+(dy<0?'доош':'дээш')+'</b> '+Math.abs(dy)+' нэгж яв.” Эрдэнэс хаана вэ? Дар!'}}
+function dOk(){dScore++;$('drScore').textContent=dScore;if(dScore>=5)rank(2);confetti(25)}
+function dClick(p){if(dMode==='read'||dBusy)return;
+  if(p.x===dT.x&&p.y===dT.y){dBusy=true;dG.emo(p.x,p.y,dMode==='isl'?'💎':'⛵',dG.n===5?46:34);fb('drFb',1,'🎉 Зөв! '+P(p.x,p.y)+(dMode==='isl'?' — эрдэнэс олдлоо!':''));dOk();setTimeout(dNew,1300)}
+  else{const m=dG.emo(p.x,p.y,'✖',22);m.setAttribute('fill','#d94c3f');setTimeout(()=>m.remove(),900);
+    fb('drFb',0,'Та '+P(p.x,p.y)+' дээр дарлаа. '+(dMode==='isl'?'Алхмаа дахин тоол.':'Эхлээд хэвтээгээр '+dT.x+', дараа нь дээш '+dT.y+'.'))}}
+$('drChk').onclick=()=>{const x=num($('drX').value),y=num($('drY').value);$('drX').className=x===dT.x?'ok':'no';$('drY').className=y===dT.y?'ok':'no';
+  if(x===dT.x&&y===dT.y){fb('drFb',1,'🎉 Зөв! ⛵'+P(x,y));dOk();setTimeout(dNew,1200)}
+  else if(x===dT.y&&y===dT.x)fb('drFb',0,'🔄 Тоонуудын байр солигдсон! Эхлээд хэвтээ, дараа нь босоо.');
+  else fb('drFb',0,'🤔 Дахин уншаарай: доош харж хэвтээ тоо, зүүн тийш харж босоо тоо.')};
+['drX','drY'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('drChk').click()}));
+document.querySelectorAll('#drModes button').forEach(b=>b.onclick=()=>{dMode=b.dataset.m;document.querySelectorAll('#drModes button').forEach(x=>x.classList.toggle('on',x===b));dNew()});
+$('drEasy').onclick=()=>{dEasy=!dEasy;$('drEasy').classList.toggle('on',dEasy);dNew()};
+$('drSkip').onclick=dNew;
+dNew();
+
+/* ================= 5. Sea battle ================= */
+const BN=6;const bG={A:Grid($('bGA'),{n:BN,cell:52,fs:20}),B:Grid($('bGB'),{n:BN,cell:52,fs:20})};
+const TN={A:'🔵 Цэнхэр флот',B:'🔴 Шүрэн флот'};
+let bs,bHint=true;
+function bInit(){bs={phase:'hideA',ships:{A:[],B:[]},shots:{A:[],B:[]},turn:'A',win:null};bRender()}
+const has=(arr,x,y)=>arr.some(p=>p.x===x&&p.y===y);
+function bRender(){
+  ['A','B'].forEach(T=>{const G=bG[T];G.clear();const hiding=bs.phase==='hide'+T;
+    G.hover=hiding;
+    const showShips=hiding||bs.phase==='over';
+    if(showShips)bs.ships[T].forEach(p=>G.emo(p.x,p.y,'⛵',34));
+    bs.shots[T].forEach(s=>{if(s.hit){G.dot(s.x,s.y,{r:20,fill:'#ff6f61'});G.emo(s.x,s.y,'💥',28)}else G.emo(s.x,s.y,'💦',24)});
+    if(!hiding&&bs.phase.startsWith('hide')&&bs.ships[T].length===0){}
+    if(!hiding&&bs.phase.startsWith('hide')&&bs.ships[T].length&&false){}
+    const hits=bs.shots[T].filter(s=>s.hit).length;$('bHit'+T).textContent=bs.phase==='play'||bs.phase==='over'?'💥 '+hits+' / 3':'';
+    $('bLog'+T).textContent=bs.shots[T].length?'Буудлага: '+bs.shots[T].map(s=>P(s.x,s.y)+(s.hit?'💥':'💦')).join(' '):'';
+    $('bCard'+T).classList.toggle('target',(bs.phase==='play'&&T!==bs.turn)||hiding)});
+  const msg=$('bMsg');
+  if(bs.phase==='hideA'||bs.phase==='hideB'){const T=bs.phase.slice(-1),O=T==='A'?'B':'A';
+    msg.innerHTML=TN[T]+': өөрийн далайд <b>3 хөлөг</b> нуу ('+bs.ships[T].length+'/3). '+TN[O]+' — нүдээ ани! 🙈';
+    $('bFire').style.display='none';$('bDone').style.display='';$('bRand').style.display='';$('bDone').disabled=bs.ships[T].length!==3}
+  else if(bs.phase==='play'){const O=bs.turn==='A'?'B':'A';msg.innerHTML=TN[bs.turn]+' буудна → '+TN[O]+'ын далай. Координатаа хэлээрэй!';
+    $('bFire').style.display='';$('bDone').style.display='none';$('bRand').style.display='none'}
+  else{msg.innerHTML='🏆 <b>'+TN[bs.win]+'</b> ялалт байгууллаа! Бүх хөлөг ил боллоо.';$('bFire').style.display='none';$('bDone').style.display='none';$('bRand').style.display='none'}
+}
+['A','B'].forEach(T=>{bG[T].onclick=p=>{if(bs.phase!=='hide'+T)return;const a=bs.ships[T],i=a.findIndex(q=>q.x===p.x&&q.y===p.y);
+  if(i>=0)a.splice(i,1);else if(a.length<3)a.push(p);bRender()}});
+$('bRand').onclick=()=>{const T=bs.phase.slice(-1);if(!bs.phase.startsWith('hide'))return;const a=[];while(a.length<3){const p={x:ri(0,BN),y:ri(0,BN)};if(!has(a,p.x,p.y))a.push(p)}bs.ships[T]=a;bRender()};
+$('bDone').onclick=()=>{if(bs.phase==='hideA'&&bs.ships.A.length===3)bs.phase='hideB';else if(bs.phase==='hideB'&&bs.ships.B.length===3){bs.phase='play';bs.turn='A'}bRender()};
+function bFire(){if(bs.phase!=='play')return;const x=num($('bX').value),y=num($('bY').value);
+  if(isNaN(x)||isNaN(y)||x<0||y<0||x>BN||y>BN){fb('bMsgFb',0,'');$('bMsg').innerHTML='⚠️ 0-ээс '+BN+' хүртэлх хоёр тоо оруулаарай.';return}
+  const O=bs.turn==='A'?'B':'A';
+  if(has(bs.shots[O],x,y)){$('bMsg').innerHTML='🔁 '+P(x,y)+' цэгт аль хэдийн буудсан! Өөр координат хэлээрэй.';return}
+  const hit=has(bs.ships[O],x,y);bs.shots[O].push({x,y,hit});$('bX').value='';$('bY').value='';
+  let note;
+  if(hit){note='💥 '+P(x,y)+' — ОНОСОН!';confetti(30)}
+  else{const near=bHint&&bs.ships[O].some(p=>!has(bs.shots[O],p.x,p.y)&&Math.abs(p.x-x)<=1&&Math.abs(p.y-y)<=1);note='💦 '+P(x,y)+' — алдсан.'+(near?' 🔥 Гэхдээ ойрхон байна!':'')}
+  if(bs.shots[O].filter(s=>s.hit).length===3){bs.phase='over';bs.win=bs.turn;bRender();rank(3);confetti(150);return}
+  bs.turn=O;bRender();$('bMsg').innerHTML=note+'<br>'+$('bMsg').innerHTML;$('bX').focus()}
+function fbNoop(){}
+$('bGo').onclick=bFire;['bX','bY'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')bFire()}));
+$('bHint').onclick=()=>{bHint=!bHint;$('bHint').textContent='⭐ Сануулга: '+(bHint?'унтраа':'асаа');$('bHint').classList.toggle('on',!bHint)};
+$('bReset').onclick=bInit;
+bInit();
+
+/* ================= Connect engine ================= */
+function Connect(G,chipsId,fbId,onDone){
+  const C={path:[],i:0,lines:null,
+    start(path){C.path=path;C.i=0;G.clear();C.chips()},
+    chips(){$(chipsId).innerHTML=C.path.map((p,k)=>'<span class="'+(k<C.i?'done':k===C.i?'cur':'')+'">'+P(p[0],p[1])+'</span>').join('')},
+    click(p){if(C.i>=C.path.length)return;const t=C.path[C.i];
+      if(p.x===t[0]&&p.y===t[1]){if(C.i>0)C.lastSeg=G.seg(C.path[C.i-1],t,'#ff6f61',5);G.dot(t[0],t[1],{r:6,fill:'#123a6b'});C.i++;C.chips();
+        if(C.i===C.path.length){fb(fbId,1,'🎉 Зураг бүтлээ!');onDone&&onDone()}else fb(fbId,1,'✅ '+P(t[0],t[1]))}
+      else fb(fbId,0,'Та '+P(p.x,p.y)+' дээр дарлаа. Дараагийн цэг: '+P(t[0],t[1]))}};
+  G.onclick=p=>C.click(p);return C}
+
+/* ================= 6. Pictures ================= */
+const PICS={p539:[[2,7],[4,7],[6,9],[8,7],[7,5],[8,3],[6,3],[5,1],[4,3],[2,3],[2,7]],
+  boat:[[2,3],[5,3],[5,9],[8,4],[5,4],[5,3],[8,3],[7,1],[3,1],[2,3]]};
+let cnPic='p539';
+const cnG=Grid($('cnG'),{n:10,cell:44});
+const cn=Connect(cnG,'cnChips','cnFb',()=>{
+  if(cnPic==='p539'){const pts=PICS.p539.map(p=>cnG.X(p[0])+','+cnG.Y(p[1])).join(' ');const pg=el('polygon',{points:pts,fill:'rgba(255,111,97,.25)'},cnG.layer);cnG.layer.insertBefore(pg,cnG.layer.firstChild);$('cnArea').style.display=''}
+  else{const pts=[[5,9],[8,4],[5,4]].map(p=>cnG.X(p[0])+','+cnG.Y(p[1])).join(' ');const s=el('polygon',{points:pts,fill:'#fffdf7',stroke:'#123a6b','stroke-width':2},cnG.layer);
+    const h=[[2,3],[8,3],[7,1],[3,1]].map(p=>cnG.X(p[0])+','+cnG.Y(p[1])).join(' ');const hp=el('polygon',{points:h,fill:'rgba(255,111,97,.45)'},cnG.layer);cnG.layer.insertBefore(hp,cnG.layer.firstChild);
+    fb('cnFb',1,'⛵ Дарвуулт онгоц бүтлээ! Цагаан далбаа мандлаа!')}
+  rank(4)});
+function cnStart(){cn.start(PICS[cnPic]);$('cnFb').textContent='';$('cnArea').style.display='none';$('cnAIn').value='';$('cnAIn').className='';$('cnAFb').textContent='';$('cnAAns').classList.remove('show')}
+document.querySelectorAll('#cnPics button[data-p]').forEach(b=>b.onclick=()=>{cnPic=b.dataset.p;document.querySelectorAll('#cnPics button[data-p]').forEach(x=>x.classList.toggle('on',x===b));cnStart()});
+$('cnRe').onclick=cnStart;
+$('cnAChk').onclick=()=>{const v=num($('cnAIn').value);if(v===28){$('cnAIn').className='ok';fb('cnAFb',1,'🎉 Зөв! 28 нэгж.кв');confetti(60)}else{$('cnAIn').className='no';fb('cnAFb',0,'🤔 Бүтэн нүд, хагас нүдийг тоол. Эсвэл тэгш өнцөгт + гурвалжингаар хуваа.')}};
+$('cnAHint').onclick=()=>$('cnAAns').classList.toggle('show');
+cnStart();
+
+/* ================= 7. Secret picture ================= */
+const scG=Grid($('scG'),{n:10,cell:44});let scPath=[],scMode='make';
+function scDrawMake(){scG.clear();for(let k=1;k<scPath.length;k++)scG.seg(scPath[k-1],scPath[k],'#1fae9f',5);scPath.forEach(p=>scG.dot(p[0],p[1],{r:6,fill:'#123a6b'}));
+  $('scChips').innerHTML=scPath.map(p=>'<span class="done">'+P(p[0],p[1])+'</span>').join('')||'<span>— цэг алга —</span>'}
+const scC=Connect(scG,'scChips','scFb',()=>{fb('scFb',1,'🎉 Нууц зургийг зөв сэргээлээ! Хос хоёулаа баяр хүргэ!');confetti(80)});
+function scMake(){scMode='make';scG.onclick=p=>{if(scMode!=='make')return;if(scPath.length>=20){fb('scFb',0,'20 цэгээс ихгүй.');return}scPath.push([p.x,p.y]);scDrawMake();$('scFb').textContent=''};
+  $('scMode').textContent='✏️ Зохиох горим';$('scHelp').textContent='Торон дээр цэгүүдийг дараалан дарж зургаа зур. Координат нь доор бичигдэнэ.';
+  ['scUndo','scClr','scHide'].forEach(i=>$(i).style.display='');['scShow','scNew'].forEach(i=>$(i).style.display='none');scDrawMake()}
+$('scUndo').onclick=()=>{scPath.pop();scDrawMake()};
+$('scClr').onclick=()=>{scPath=[];scDrawMake()};
+$('scHide').onclick=()=>{if(scPath.length<3){fb('scFb',0,'Дор хаяж 3 цэг зур.');return}scMode='guess';
+  const onc=scC.click;scC.start(scPath.slice());scG.onclick=p=>onc(p);
+  $('scMode').textContent='🧩 Таах горим';$('scHelp').textContent='Найз нь жагсаалтыг уншаад цэгүүдийг дарааллаар нь дарж зургийг сэргээнэ!';
+  ['scUndo','scClr','scHide'].forEach(i=>$(i).style.display='none');['scShow','scNew'].forEach(i=>$(i).style.display='');$('scFb').textContent=''};
+$('scShow').onclick=()=>{for(let k=1;k<scPath.length;k++){const s=scG.seg(scPath[k-1],scPath[k],'#1fae9f',3);s.setAttribute('stroke-dasharray','6 6')}};
+$('scNew').onclick=()=>{scPath=[];scMake()};
+scMake();
+
+/* ================= 8. Exit check ================= */
+const EX={};function exMark(k,ok){if(ok&&!EX[k]){EX[k]=1;const n=Object.keys(EX).length;$('exScore').textContent=n;
+  $('exMsg').textContent=n===5?'🏆 Та жинхэнэ ахмад боллоо!':'Сайн байна! '+n+' / 5';if(n===5)confetti(150);else confetti(25)}}
+function exInp(k,ans,ok,no){$('ex'+k+'b').onclick=()=>{const v=num($('ex'+k).value);if(v===ans){$('ex'+k).className='ok';fb('ex'+k+'f',1,ok);exMark(k,1)}else{$('ex'+k).className='no';fb('ex'+k+'f',0,no)}};
+  $('ex'+k).addEventListener('keydown',e=>{if(e.key==='Enter')$('ex'+k+'b').click()})}
+exInp(1,6,'✅ 6 нэгж: −2-оос 0 хүртэл 2, 0-ээс 4 хүртэл 4.','🤔 −2-оос 4 хүртэл алхмуудыг тоол.');
+exInp(4,9,'✅ 9°: −2-оос 0 хүртэл 2, 0-ээс 7 хүртэл 7.','🤔 Термометрийг тоон шулуун гэж бод.');
+function exOpts(k,ok,no){document.querySelectorAll('#ex'+k+' button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#ex'+k+' button').forEach(x=>x.className='');
+  if(b.dataset.v==='1'){b.className='ok';fb('ex'+k+'f',1,ok);exMark(k,1)}else{b.className='no';fb('ex'+k+'f',0,no)}})}
+exOpts(2,'✅ Хэвтээ 3, босоо 5.','🔄 Эхлээд хэвтээ тэнхлэгийн тоо!');
+exOpts(5,'✅ O(0, 0) — хоёр тэнхлэг хоёулаа 0.','🤔 O цэг хоёр тэнхлэгийн огтлолцол дээр.');
+(()=>{const g=Grid($('ex2G'),{n:6,cell:30,fs:16,hover:false});g.emo(3,5,'⛵',26);g.dot(3,5,{r:4,fill:'#0a1f3c'});
+  const g3=Grid($('ex3G'),{n:7,cell:28,fs:15,hover:false});g3.onclick=p=>{g3.clear();if(p.x===6&&p.y===2){g3.emo(6,2,'⛵',24);fb('ex3f',1,'✅ (6, 2) — зөв!');exMark(3,1)}
+    else{g3.dot(p.x,p.y,{r:7,fill:'#d94c3f'});fb('ex3f',0,'Та '+P(p.x,p.y)+' дээр дарлаа. Баруун тийш 6, дээш 2.')}}})();
+
+/* ================= Stars ================= */
+(()=>{const b=[...document.querySelectorAll('#stars3 button')];const set=n=>{b.forEach((x,i)=>x.classList.toggle('on',i<n));store.set('m_coord_stars',n)};b.forEach((x,i)=>x.onclick=()=>{set(i+1);if(i===2)confetti(60)});set(+(store.get('m_coord_stars')||0))})();
+
+/* ================= Confetti (sails & bubbles) ================= */
+const cf=$('confetti'),cfx=cf.getContext('2d');let parts=[],cRun=false;
+function confetti(n){cf.width=innerWidth;cf.height=innerHeight;const cols=['#fffdf7','#ff6f61','#f6d58e','#1fae9f','#4f9be0'];
+  for(let i=0;i<n;i++)parts.push({x:innerWidth/2+rnd(-180,180),y:innerHeight*.45,vx:rnd(-7,7),vy:-rnd(4,18),s:rnd(8,15),c:cols[i%5],r:rnd(0,6),t:i%3,life:130});
+  if(!cRun){cRun=true;requestAnimationFrame(cStep)}}
+function cStep(){cfx.clearRect(0,0,cf.width,cf.height);parts.forEach(p=>{p.vy+=.38;p.x+=p.vx;p.y+=p.vy;p.r+=.12;p.life--;cfx.save();cfx.translate(p.x,p.y);cfx.rotate(p.r);
+    if(p.t===2){cfx.strokeStyle=p.c;cfx.lineWidth=2.5;cfx.beginPath();cfx.arc(0,0,p.s/2,0,7);cfx.stroke()}
+    else{cfx.fillStyle=p.c;cfx.beginPath();cfx.moveTo(0,-p.s*.7);cfx.lineTo(p.s*.5,p.s*.4);cfx.lineTo(0,p.s*.4);cfx.closePath();cfx.fill();cfx.fillStyle='#0a1f3c';cfx.fillRect(-1,-p.s*.7,2,p.s*1.2)}
+    cfx.restore()});
+  parts=parts.filter(p=>p.life>0&&p.y<cf.height+20);if(parts.length)requestAnimationFrame(cStep);else{cRun=false;cfx.clearRect(0,0,cf.width,cf.height)}}
+
+rankSum();
+go(0);
+</script>
+<script>/* auto-fit: слайд дэлгэцэнд багтахгүй бол агуулгыг бага зэрэг жижигрүүлнэ */
+(function(){function fit(){document.querySelectorAll('.slide').forEach(function(s){var k=[].slice.call(s.children);k.forEach(function(c){c.style.zoom=''});if(!s.clientHeight)return;var z=1;while(s.scrollHeight-s.clientHeight>2&&z>0.8){z-=0.02;k.forEach(function(c){c.style.zoom=z})}})}
+var o=window.go;if(typeof o==='function'){window.go=function(){var r=o.apply(this,arguments);fit();return r}}window.addEventListener('resize',function(){setTimeout(fit,50)});setTimeout(fit,300)})();</script>
+</body>
+</html>
