@@ -1,1 +1,0 @@
-# Gereltuya.V.coordinatiin.havtgai.io
